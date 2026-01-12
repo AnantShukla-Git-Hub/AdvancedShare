@@ -2,6 +2,14 @@
 #include "../network/socket_init.h"
 #include "../common/config.h"
 
+/* cout (buffered):
+  -Output pehle buffer me jaata hai
+  -Kab print hoga → later decide hota hai
+
+   cerr (unbuffered):
+  -Turant screen pe print hota hai
+  -Crash se pehle bhi dikhta hai
+  */
 int main()
 {
     if (!init_socket()) {
