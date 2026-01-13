@@ -19,7 +19,7 @@
     }
 
 #else
-    // ⚠️ Legacy compiler fallback
+
     #include <sys/stat.h>
 
     uint64_t get_file_size(const std::string& path) {

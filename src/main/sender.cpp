@@ -26,7 +26,7 @@ int main()
     std::cout << "Enter file path: ";
     std::getline(std::cin, file_path);
 
-    compiler_warning();
+    
     
     if (!file_exists(file_path)) {
         std::cerr << "File does not exist\n";
