@@ -1,4 +1,6 @@
 #include <iostream>
+#include <string>
+#include "../common/utils.h"
 #include "../network/socket_init.h"
 #include "../common/config.h"
 
@@ -20,8 +22,35 @@ int main()
     std::cout << "Enter receiver IP: ";
     std::cin >> ip;
     std::cin.ignore();
-    std::cout << "Enter message: ";
-    std::getline(std::cin, message);
+    std::string file_path;
+    std::cout << "Enter file path: ";
+    std::getline(std::cin, file_path);
+
+    compiler_warning();
+    
+    if (!file_exists(file_path)) {
+        std::cerr << "File does not exist\n";
+        close_socket(sock);
+        cleanup_socket();
+        return 1;
+    }
+    std::string filename;
+    size_t pos = file_path.find_last_of("/\\");
+    if (pos != std::string::npos)
+        filename = file_path.substr(pos + 1);
+    else
+        filename = file_path;
+    uint64_t filesize = get_file_size(file_path);
+
+    char choice;
+    
+    std::cout << "Do you want to send a message with file? (Y/N): ";
+    std::cin >> choice;
+    std::cin.ignore();
+    if (choice == 'Y' || choice == 'y') {
+        std::cout << "Enter message: ";
+        std::getline(std::cin, message);
+    }
 
     //sockaddr_in server{}-->this contain IP address and port number of server and adress family(IPv4-we are using/IPv6)
     sockaddr_in server{};
@@ -43,12 +72,37 @@ int main()
     //cerr-->standard error stream hai jo error messages ko display karne ke liye use hota hai
     if (connect(sock, (sockaddr*)&server, sizeof(server)) < 0) {
         std::cerr << "Connection failed\n";
+        close_socket(sock);
+        cleanup_socket();
         return 1;
     }
 
-    //send--> ye function data ko socket ke through bhejne ke liye use hota hai
-    send(sock, message.c_str(), message.size(), 0);
-    std::cout << "Message sent successfully\n";
+    std::string payload;
+    payload += "REQ " + filename + " " + std::to_string(filesize) + "\n";
+    if (!message.empty()) {
+        payload += "MSG " + message + "\n";
+    }
+    payload+="END\n";
+
+    send(sock, payload.c_str(), payload.size(), 0);
+    char response[16]{};
+    
+    int r = recv(sock, response, sizeof(response) - 1, 0);
+    if (r <= 0) {
+    std::cerr << "Connection closed before response\n";
+        close_socket(sock);
+        cleanup_socket();
+        return 1;
+    }
+    response[r] = '\0';  // null-terminate
+    std::string reply(response);
+    if (reply.find("ACC") != std::string::npos) {
+        std::cout << "Receiver ACCEPTED\n";
+    } else if (reply.find("REJ") != std::string::npos) {
+        std::cout << "Receiver REJECTED\n";
+    } else {
+        std::cerr << "Unknown response: " << reply << "\n";
+    }
 
     close_socket(sock);
     cleanup_socket();

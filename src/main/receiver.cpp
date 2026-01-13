@@ -1,4 +1,7 @@
 #include <iostream>
+#include <sstream>
+#include <string>
+
 #include "../network/socket_init.h"
 #include "../common/config.h"
 
@@ -10,19 +13,23 @@
   -Turant screen pe print hota hai
   -Crash se pehle bhi dikhta hai
   */
+
 int main()
 {
+    // 1. Init socket system
     if (!init_socket()) {
         std::cerr << "Socket init failed\n";
         return 1;
     }
 
+    // 2. Create server socket
     socket_t server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd < 0) {
         std::cerr << "Socket creation failed\n";
         return 1;
     }
 
+    // 3. Bind address
     sockaddr_in address{};
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
@@ -33,21 +40,84 @@ int main()
         return 1;
     }
 
+    // 4. Listen
     listen(server_fd, 1);
-    std::cout << "Receiver started. Waiting for connection...\n";
+    std::cout << "Receiver listening on port " << PORT << "...\n";
 
+    // 5. Accept sender
     socket_t client_fd = accept(server_fd, nullptr, nullptr);
     if (client_fd < 0) {
         std::cerr << "Accept failed\n";
         return 1;
     }
 
-    char buffer[BUFFER_SIZE]{};
-    recv(client_fd, buffer, BUFFER_SIZE, 0);
-    std::cout << "Message received: " << buffer << "\n";
+    // 6. Receive request
+    std::string incoming;
+    char buffer[512];
 
-    close_socket(client_fd);
-    close_socket(server_fd);
-    cleanup_socket();
+    while (true) {
+        int n = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+        if (n <= 0) {
+            std::cerr << "Receive failed or connection closed\n";
+            return 1;
+        }
+
+        buffer[n] = '\0';
+        incoming += buffer;
+
+        if (incoming.find("END\n") != std::string::npos)
+            break;
+    }
+
+    // 7. Parse request
+    std::istringstream iss(incoming);
+    std::string line;
+    std::string filename;
+    std::string message;
+    uint64_t filesize=0;
+    while(std::getline(iss,line)){
+        if(line.rfind("REQ",0)==0){
+            std::istringstream ls(line);
+            std::string cmd;
+            ls>>cmd>>filename>>filesize;
+        }
+        else if (line.rfind("MSG",0)==0){
+            message=line.substr(4);
+        }
+        else if(line=="END"){
+            break;
+        }
+    }
+    //if (filename.empty() || filesize==0){
+        //std::cerr<<"Invalid request\n";
+        //close_socket(client_fd);
+        //return 1;
+    //}
+
+    // 8. Show file info
+    std::cout << "\nIncoming file request:\n";
+    std::cout << "File name: " << filename << "\n";
+    std::cout << "File size: " << filesize << " bytes\n";
+    std::cout << "Accept? (Y/N): ";
+
+    if(!message.empty()){
+        std::cout<<"Message: "<<message<<"\n";
+    }
+    std::cout<<"Accept? (Y/N): ";
+    char choice;
+    std::cin >> choice;
+
+    // 9. Send response
+    if (choice == 'Y' || choice == 'y') {
+        send(client_fd, "ACC", 3, 0);
+        std::cout << "Accepted. Ready for transfer (next phase).\n";
+    } else {
+        send(client_fd, "REJ", 3, 0);
+        std::cout << "Rejected.\n";
+    }
+
+    #ifdef _WIN32
+    Sleep(200);
+    #endif
     return 0;
 }
