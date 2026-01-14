@@ -1,5 +1,7 @@
 #include <iostream>
 #include <string>
+
+#include "../transfer/file.cpp"
 #include "../common/utils.h"
 #include "../network/socket_init.h"
 #include "../common/config.h"
@@ -22,14 +24,17 @@ int main()
     std::cout << "Enter receiver IP: ";
     std::cin >> ip;
     std::cin.ignore();
+    
     std::string file_path;
     std::cout << "Enter file path: ";
     std::getline(std::cin, file_path);
+
     compiler_warning();
+
     if (!file_exists(file_path)) {
         std::cerr << "File does not exist\n";
-        close_socket(sock);
-        cleanup_socket();
+        //close_socket(sock);
+        //cleanup_socket();
         return 1;
     }
     std::string filename;
@@ -76,7 +81,7 @@ int main()
     }
 
     std::string payload;
-    payload += "REQ " + filename + " " + std::to_string(filesize) + "\n";
+    payload += "REQ|" + filename + "|" + std::to_string(filesize) + "\n";
     if (!message.empty()) {
         payload += "MSG " + message + "\n";
     }
@@ -96,6 +101,7 @@ int main()
     std::string reply(response);
     if (reply.find("ACC") != std::string::npos) {
         std::cout << "Receiver ACCEPTED\n";
+        send_file(sock, file_path, filesize);
     } else if (reply.find("REJ") != std::string::npos) {
         std::cout << "Receiver REJECTED\n";
     } else {

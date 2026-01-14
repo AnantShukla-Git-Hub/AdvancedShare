@@ -1,7 +1,9 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <iomanip>
 
+#include "../transfer/file.cpp"
 #include "../network/socket_init.h"
 #include "../common/config.h"
 
@@ -76,10 +78,11 @@ int main()
     std::string message;
     uint64_t filesize=0;
     while(std::getline(iss,line)){
-        if(line.rfind("REQ",0)==0){
-            std::istringstream ls(line);
-            std::string cmd;
-            ls>>cmd>>filename>>filesize;
+        if(line.rfind("REQ|",0)==0){
+            size_t p1=line.find('|');
+            size_t p2=line.find('|',p1+1);
+            filename=line.substr(p1+1,p2-p1-1);
+            filesize=std::stoull(line.substr(p2+1));
         }
         else if (line.rfind("MSG",0)==0){
             message=line.substr(4);
@@ -88,18 +91,21 @@ int main()
             break;
         }
     }
-    //if (filename.empty() || filesize==0){
-        //std::cerr<<"Invalid request\n";
-        //close_socket(client_fd);
-        //return 1;
-    //}
 
     // 8. Show file info
     std::cout << "\nIncoming file request:\n";
     std::cout << "File name: " << filename << "\n";
-    std::cout << "File size: " << filesize << " bytes\n";
-    std::cout << "Accept? (Y/N): ";
+    std::cout<<std::fixed<<std::setprecision(2);
+    double size_mb = filesize / (1024.0 * 1024.0);
+    double size_gb = filesize / (1024.0 * 1024.0 * 1024.0);
 
+    if (size_gb >= 1.0) {
+        std::cout << "File size: " << size_gb << " GB\n";
+    } 
+    else {
+        std::cout << "File size: " << size_mb << " MB\n";
+    }
+    //std::cout << "File size: " << filesize << " bytes\n";
     if(!message.empty()){
         std::cout<<"Message: "<<message<<"\n";
     }
@@ -110,14 +116,14 @@ int main()
     // 9. Send response
     if (choice == 'Y' || choice == 'y') {
         send(client_fd, "ACC", 3, 0);
-        std::cout << "Accepted. Ready for transfer (next phase).\n";
+        receive_file(client_fd, filename, filesize);
     } else {
         send(client_fd, "REJ", 3, 0);
         std::cout << "Rejected.\n";
     }
 
-    #ifdef _WIN32
-    Sleep(200);
-    #endif
+    close_socket(client_fd);
+    close_socket(server_fd);
+    cleanup_socket();
     return 0;
 }
