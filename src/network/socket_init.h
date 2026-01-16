@@ -21,7 +21,6 @@ inline bool init_socket()
     return WSAStartup(MAKEWORD(2,2), &wsa) == 0;
 #else
     return true;
-//Yahan pe conditional preprocessor block khatam ho raha hai.
 #endif
 }
 

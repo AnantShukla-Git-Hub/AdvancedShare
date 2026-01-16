@@ -126,7 +126,7 @@ int main()
                 << setw(2) << (eta % 60)
                 << flush;
         });
-        cout << "\n✅ File sent successfully\n";
+        cout << "\n File sent successfully\n";
     } else if (reply.find("REJ") != std::string::npos) {
         std::cout << "Receiver REJECTED\n";
     } else {

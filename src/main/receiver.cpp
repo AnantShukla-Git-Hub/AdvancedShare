@@ -105,7 +105,6 @@ int main()
     else {
         std::cout << "File size: " << size_mb << " MB\n";
     }
-    //std::cout << "File size: " << filesize << " bytes\n";
     if(!message.empty()){
         std::cout<<"Message: "<<message<<"\n";
     }
