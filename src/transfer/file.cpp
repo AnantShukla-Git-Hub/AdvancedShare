@@ -1,12 +1,13 @@
 #include <fstream>
 #include <iostream>
 #include <cstring>
+#include <functional>
 
 #include "../common/config.h"
 #include "../common/utils.h"
 #include "../network/socket_init.h"
 
-bool send_file(socket_t sock, const std::string& path, uint64_t filesize)
+bool send_file(socket_t sock, const std::string& path, uint64_t filesize,std::function<void(uint64_t)> on_chunk_sent)
 {
     std::ifstream file(path, std::ios::binary);
     if (!file) {
@@ -30,6 +31,9 @@ bool send_file(socket_t sock, const std::string& path, uint64_t filesize)
         }
 
         sent += s;
+        if(on_chunk_sent) {
+            on_chunk_sent((uint64_t)s);
+        }
         int percent = (int)((sent * 100) / filesize);
         std::cout << "\rSending: " << percent << "%" << std::flush;
     }

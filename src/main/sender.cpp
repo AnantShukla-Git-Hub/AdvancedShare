@@ -1,11 +1,15 @@
 #include <iostream>
 #include <string>
+#include <chrono>
+#include <iomanip>
 
-#include "../transfer/file.cpp"
+#include "../transfer/file.h"
 #include "../common/utils.h"
 #include "../network/socket_init.h"
 #include "../common/config.h"
 
+using namespace std::chrono;
+using namespace std;
 int main()
 {
     if (!init_socket()) {
@@ -101,7 +105,28 @@ int main()
     std::string reply(response);
     if (reply.find("ACC") != std::string::npos) {
         std::cout << "Receiver ACCEPTED\n";
-        send_file(sock, file_path, filesize);
+        auto start = steady_clock::now();
+        uint64_t sent=0;
+        send_file(sock, file_path, filesize, [&](uint64_t bytes_sent_now){
+            sent+=bytes_sent_now;
+            auto now = steady_clock::now();
+            double elaspsed=max(1.0,(double)duration_cast<seconds>(now-start).count());
+            double speed=(sent/1024.0*1024.0)/elaspsed; //MB/s
+            uint64_t remaining=filesize-sent;
+            uint64_t eta=(speed>0)?(uint64_t)((remaining/(speed*1024.0*1024.0))/speed):0;
+            double progress=(sent*100.0)/filesize;
+            cout<<"\r sending:"
+                << fixed << setprecision(1)
+                << progress << "% | "
+                << "Speed: " << setprecision(2)
+                << speed << " MB/s | "
+                << "ETA: "
+                << setw(2) << setfill('0') << (eta / 60)
+                << ":"
+                << setw(2) << (eta % 60)
+                << flush;
+        });
+        cout << "\n✅ File sent successfully\n";
     } else if (reply.find("REJ") != std::string::npos) {
         std::cout << "Receiver REJECTED\n";
     } else {
