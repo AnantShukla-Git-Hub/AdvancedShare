@@ -3,7 +3,7 @@
 #include <string>
 #include <iomanip>
 
-#include "../transfer/file.cpp"
+#include "../transfer/file.h"
 #include "../network/socket_init.h"
 #include "../common/config.h"
 

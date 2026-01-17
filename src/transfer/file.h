@@ -5,14 +5,14 @@
 #include "../network/socket_init.h"
 
 bool send_file(
-    socket_t sock,
+    unsigned int sock,
     const std::string& path,
-    uint64_t filesize,
-    std::function<void(uint64_t)> on_chunk_sent
+    unsigned long long filesize,
+    std::function<void(unsigned long long)> on_chunk_sent
 );
 
 bool receive_file(
-    socket_t sock,
+    unsigned int sock,
     const std::string& path,
-    uint64_t filesize
+    unsigned long long filesize
 );
